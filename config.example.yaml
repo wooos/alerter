@@ -1,5 +1,8 @@
+listen:
+  host: "0.0.0.0"
+  port: 1110
+
 dingtalk:
   enabled: true
   token: ""
   secret: ""
-  
