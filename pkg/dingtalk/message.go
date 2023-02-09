@@ -3,6 +3,11 @@ package dingtalk
 // MessageType message type
 type MessageType string
 
+//
+type Message interface {
+	GetMsgType() MessageType
+}
+
 // MessageAt
 type MessageAt struct {
 	// AtMobiles list of mobile phone numbers of people to be reminded
@@ -24,6 +29,10 @@ type DingtalkMessageText struct {
 	Text    MessageText `json:"text"`
 }
 
+func (m DingtalkMessageText) GetMsgType() MessageType {
+	return "text"
+}
+
 type MessageLink struct {
 	// Text message content
 	Text string `json:"text"`
@@ -40,6 +49,10 @@ type DingtalkMessageLink struct {
 	Link    MessageLink `json:"link"`
 }
 
+func (m DingtalkMessageLink) GetMsgType() MessageType {
+	return "link"
+}
+
 type MessageMarkdown struct {
 	// Title the display content revealed in the first screen conversation
 	Title string `json:"title"`
@@ -51,6 +64,10 @@ type DingtalkMessageMarkdown struct {
 	MsgType  MessageType     `json:"msgtype"`
 	Markdown MessageMarkdown `json:"markdown"`
 	At       MessageAt       `json:"at"`
+}
+
+func (m DingtalkMessageMarkdown) GetMsgType() MessageType {
+	return "markdown"
 }
 
 type MessageActionCardBtn struct {

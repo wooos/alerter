@@ -3,9 +3,16 @@ package config
 import (
 	"fmt"
 	"io/ioutil"
+	"log"
 
 	"gopkg.in/yaml.v2"
 )
+
+type Config struct {
+	Listen   Listen       `json:"listen" yaml:"listen"`
+	Dingtalk Dingtalk     `json:"dingtalk" yaml:"dingtalk"`
+	Feishu   FeishuConfig `json:"feishu" yaml:"feishu"`
+}
 
 type Listen struct {
 	Host string `json:"host" yaml:"host"`
@@ -18,26 +25,26 @@ type Dingtalk struct {
 	Secret  string `json:"secret" yaml:"secret"`
 }
 
-type Config struct {
-	Listen   Listen   `json:"listen" yaml:"listen"`
-	Dingtalk Dingtalk `json:"dingtalk" yaml:"dingtalk"`
+type FeishuConfig struct {
+	Enabled bool   `json:"enabled" yaml:"enabled"`
+	Secret  string `json:"secret" yaml:"secret"`
 }
 
 func (c *Config) ListenAddr() string {
 	return fmt.Sprintf("%s:%d", c.Listen.Host, c.Listen.Port)
 }
 
-func LoadConfig(configFile string) (*Config, error) {
-	conf := Config{}
+var (
+	Conf Config
+)
 
+func LoadConfig(configFile string) {
 	data, err := ioutil.ReadFile(configFile)
 	if err != nil {
-		return nil, err
+		log.Fatalln(err)
 	}
 
-	if err := yaml.Unmarshal(data, &conf); err != nil {
-		return nil, err
+	if err := yaml.Unmarshal(data, &Conf); err != nil {
+		log.Fatalln(err)
 	}
-
-	return &conf, nil
 }

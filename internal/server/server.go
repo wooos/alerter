@@ -1,7 +1,7 @@
 package server
 
 import (
-	"fmt"
+	"log"
 	"net/http"
 	"time"
 
@@ -9,20 +9,22 @@ import (
 	"github.com/wooos/alerter/internal/config"
 )
 
-func RunServer(conf *config.Config) {
+func RunServer() {
 	server := mux.NewRouter()
-	server.HandleFunc("/v1/send", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		fmt.Fprintf(w, "Hello")
-	}).Methods("POST")
+
+	server.HandleFunc("/healthz", HealthHandler).Methods("GET")
+
+	api := server.PathPrefix("/api/v1").Subrouter()
+	api.HandleFunc("/alerter", AlerterHandler).Methods("POST")
 
 	srv := &http.Server{
 		Handler: server,
-		Addr:    conf.ListenAddr(),
+		Addr:    config.Conf.ListenAddr(),
 		// Good practice: enforce timeouts for servers you create!
 		WriteTimeout: 15 * time.Second,
 		ReadTimeout:  15 * time.Second,
 	}
 
+	log.Println("Server starting ...")
 	srv.ListenAndServe()
 }

@@ -1,4 +1,4 @@
-package dingtalk
+package feishu
 
 import (
 	"bytes"
@@ -10,33 +10,26 @@ import (
 )
 
 const (
-	OpenApi         string      = "https://oapi.dingtalk.com/robot/send"
-	MarkdownMessage MessageType = "markdown"
+	OpenApi string = "https://open.feishu.cn/open-apis/bot/v2/hook/"
 )
 
 type Client struct {
-	// AccessToken access token
-	AccessToken string
-	// Secret sign secret
 	Secret string
 }
 
-// NewClient return dingtalk client
-func NewClient(access_token, secret string) Client {
+func NewClient(secret string) Client {
 	return Client{
-		AccessToken: access_token,
-		Secret:      secret,
+		Secret: secret,
 	}
 }
 
-// SendMessage
 func (c Client) SendMessage(msg Message) {
 	requestBody, err := json.Marshal(msg)
 	if err != nil {
 		log.Println(err)
 	}
 
-	requestUrl := fmt.Sprintf("%s?access_token=%s", OpenApi, c.AccessToken)
+	requestUrl := fmt.Sprintf("%s/%s", OpenApi, c.Secret)
 	response, err := http.Post(requestUrl, "application/json", bytes.NewBuffer(requestBody))
 	if err != nil {
 		log.Println(err)

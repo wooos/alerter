@@ -1,8 +1,6 @@
 package main
 
 import (
-	"log"
-
 	"github.com/spf13/cobra"
 	"github.com/wooos/alerter/internal/config"
 	"github.com/wooos/alerter/internal/server"
@@ -13,12 +11,9 @@ type options struct {
 }
 
 func (o *options) runCommand(cmd *cobra.Command, args []string) {
-	conf, err := config.LoadConfig(o.configFile)
-	if err != nil {
-		log.Fatalln(err)
-	}
+	config.LoadConfig(o.configFile)
 
-	server.RunServer(conf)
+	server.RunServer()
 }
 
 func NewCommand() *cobra.Command {

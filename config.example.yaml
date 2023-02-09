@@ -6,3 +6,7 @@ dingtalk:
   enabled: true
   token: ""
   secret: ""
+
+feishu:
+  enabled: true
+  secret: ""
