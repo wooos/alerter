@@ -4,7 +4,9 @@ import (
 	"fmt"
 
 	"github.com/wooos/alerter/internal/config"
+	"github.com/wooos/alerter/internal/pkg/metrics"
 	"github.com/wooos/alerter/internal/pkg/request"
+	"github.com/wooos/alerter/pkg/dingtalk"
 	"github.com/wooos/alerter/pkg/feishu"
 	"github.com/wooos/alerter/pkg/utils"
 )
@@ -23,7 +25,7 @@ func SendMessage(alert request.AlertRequestAlert) {
 			MsgType: feishu.MsgTypeInteractive,
 		}
 
-		msg.MsgCard.Elements = append(msg.MsgCard.Elements, feishu.InteractiveMessageCardElement{
+		msg.Card.Elements = append(msg.Card.Elements, feishu.CardElement{
 			Tag:     "markdown",
 			Content: "**Labels**",
 		})
@@ -33,45 +35,45 @@ func SendMessage(alert request.AlertRequestAlert) {
 				continue
 			}
 
-			msg.MsgCard.Elements = append(msg.MsgCard.Elements, feishu.InteractiveMessageCardElement{
+			msg.Card.Elements = append(msg.Card.Elements, feishu.CardElement{
 				Tag:     "markdown",
 				Content: fmt.Sprintf("  - %s: %s", k, v),
 			})
 		}
 
-		msg.MsgCard.Elements = append(msg.MsgCard.Elements, feishu.InteractiveMessageCardElement{
+		msg.Card.Elements = append(msg.Card.Elements, feishu.CardElement{
 			Tag:     "markdown",
 			Content: "**Annotations**",
 		})
 
 		for k, v := range alert.Annotations {
-			msg.MsgCard.Elements = append(msg.MsgCard.Elements, feishu.InteractiveMessageCardElement{
+			msg.Card.Elements = append(msg.Card.Elements, feishu.CardElement{
 				Tag:     "markdown",
 				Content: fmt.Sprintf("  - %s: %s", k, v),
 			})
 		}
 
-		msg.MsgCard.Elements = append(msg.MsgCard.Elements, feishu.InteractiveMessageCardElement{
+		msg.Card.Elements = append(msg.Card.Elements, feishu.CardElement{
 			Tag: "hr",
 		})
 
 		switch alert.Status {
 		case "firing":
-			msg.MsgCard.Header = feishu.InteractiveMessageCardHeader{
+			msg.Card.Header = feishu.CardHeader{
 				Template: "red",
-				Title: feishu.InteractiveMessageCardHeaderTitle{
+				Title: feishu.CardHeaderTitle{
 					Content: fmt.Sprintf("[告警触发] %s", alert.Labels["alertname"]),
 					Tag:     "plain_text",
 				},
 			}
 
-			msg.MsgCard.Elements = append(msg.MsgCard.Elements, feishu.InteractiveMessageCardElement{
+			msg.Card.Elements = append(msg.Card.Elements, feishu.CardElement{
 				Tag: "action",
-				Actions: []feishu.InteractiveMessageCardElementAction{
+				Actions: []feishu.CardElementAction{
 					{
 						Tag:  "button",
 						Type: "danger",
-						Text: feishu.InteractiveMessageCardElementText{
+						Text: feishu.CardElementText{
 							Tag:     "plain_text",
 							Content: "更多",
 						},
@@ -80,21 +82,21 @@ func SendMessage(alert request.AlertRequestAlert) {
 				},
 			})
 		case "resolved":
-			msg.MsgCard.Header = feishu.InteractiveMessageCardHeader{
+			msg.Card.Header = feishu.CardHeader{
 				Template: "green",
-				Title: feishu.InteractiveMessageCardHeaderTitle{
+				Title: feishu.CardHeaderTitle{
 					Content: fmt.Sprintf("[告警恢复] %s", alert.Labels["alertname"]),
 					Tag:     "plain_text",
 				},
 			}
 
-			msg.MsgCard.Elements = append(msg.MsgCard.Elements, feishu.InteractiveMessageCardElement{
+			msg.Card.Elements = append(msg.Card.Elements, feishu.CardElement{
 				Tag: "action",
-				Actions: []feishu.InteractiveMessageCardElementAction{
+				Actions: []feishu.CardElementAction{
 					{
 						Tag:  "button",
 						Type: "green",
-						Text: feishu.InteractiveMessageCardElementText{
+						Text: feishu.CardElementText{
 							Tag:     "plain_text",
 							Content: "更多",
 						},
@@ -105,7 +107,62 @@ func SendMessage(alert request.AlertRequestAlert) {
 		}
 
 		client := feishu.NewClient(config.Conf.Feishu.Secret)
-		client.SendMessage(msg)
+		if err := client.SendMessage(msg); err != nil {
+			metrics.AlerterSendMessageTotal.WithLabelValues("feishu", "send_failed").Inc()
+		} else {
+			metrics.AlerterSendMessageTotal.WithLabelValues("feishu", "send_success").Inc()
+		}
 	}
 
+	if config.Conf.Dingtalk.Enabled {
+		msg := dingtalk.ActionCardMessage{
+			MsgType: dingtalk.MsgTypeActionCard,
+			ActionCard: dingtalk.ActionCard{
+				Title:          "",
+				Text:           "",
+				BtnOrientation: "",
+				SingleTitle:    "",
+				SingleURL:      "",
+				Btns:           []dingtalk.ActionCardBtn{},
+			},
+		}
+
+		var msgText string
+		switch alert.Status {
+		case "firing":
+			msg.ActionCard.Title = fmt.Sprintf("【告警通知】%s", alert.Labels["alertname"])
+			msgText = fmt.Sprintf("### 【告警通知】%s", alert.Labels["alertname"])
+		case "resolved":
+			msg.ActionCard.Title = fmt.Sprintf("【告警恢复】%s", alert.Labels["alertname"])
+			msgText = fmt.Sprintf("### 【告警恢复】%s", alert.Labels["alertname"])
+		}
+
+		msgText = fmt.Sprintf("%s\n\n%s", msgText, "**Labels**")
+
+		for k, v := range alert.Labels {
+			if utils.StrInArray(k, IgnoreLabelKeys) {
+				continue
+			}
+
+			msgText = fmt.Sprintf("%s\n\n> %s: %s", msgText, k, v)
+		}
+
+		msgText = fmt.Sprintf("%s\n\n%s", msgText, "**Annotations**")
+
+		for k, v := range alert.Annotations {
+			msgText = fmt.Sprintf("%s\n\n> %s: %s", msgText, k, v)
+		}
+
+		msg.ActionCard.Text = msgText
+		msg.ActionCard.SingleURL = fmt.Sprintf("dingtalk://dingtalkclient/page/link?url=%s&pc_slide=false", alert.GeneratorURl)
+
+		msg.ActionCard.SingleTitle = "更多"
+
+		client := dingtalk.NewClient(config.Conf.Dingtalk.Token, config.Conf.Dingtalk.Secret)
+		if err := client.SendMessage(msg); err != nil {
+			metrics.AlerterSendMessageTotal.WithLabelValues("dingtalk", "send_failed").Inc()
+		} else {
+			metrics.AlerterSendMessageTotal.WithLabelValues("dingtalk", "send_success").Inc()
+		}
+	}
 }

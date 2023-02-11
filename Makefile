@@ -32,8 +32,18 @@ ifdef VERSION
 endif
 BINARY_VERSION ?= ${GIT_TAG}
 
+# Only set Version if building a tag or VERSION is set
+ifneq ($(BINARY_VERSION),)
+	LDFLAGS += -X github.com/wooos/alerter/internal/pkg/version.version=${BINARY_VERSION}
+endif
+
+LDFLAGS += -X github.com/wooos/alerter/internal/pkg/version.metadata=${VERSION_METADATA}
+LDFLAGS += -X github.com/wooos/alerter/internal/pkg/version.gitCommit=${GIT_COMMIT}
+LDFLAGS += -X github.com/wooos/alerter/internal/pkg/version.gitTreeState=${GIT_DIRTY}
+LDFLAGS += $(EXT_LDFLAGS)
+
 .PHONY: all
-all: build
+all: build build-docker-image
 
 # ------------------------------------------------------------------------------
 #  build
@@ -44,6 +54,10 @@ build: $(BINDIR)/$(BINNAME)
 $(BINDIR)/$(BINNAME): $(SRC)
 	GO111MODULE=on go build $(GOFLAGS) -tags '$(TAGS)' -ldflags '$(LDFLAGS)' -o $(BINDIR)/$(BINNAME) ./cmd/alerter
 
+
+.PHONY: build-docker-image
+build-docker-image:
+	docker build -t wooos/alerter:$(BINARY_VERSION) -f Dockerfile .
 
 # ------------------------------------------------------------------------------
 #  test

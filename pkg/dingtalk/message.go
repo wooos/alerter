@@ -1,21 +1,18 @@
 package dingtalk
 
-// MessageType message type
-type MessageType string
+const (
+	MsgTypeText       MsgType = "text"
+	MsgTypeLink       MsgType = "link"
+	MsgTypeMarkdown   MsgType = "markdown"
+	MsgTypeActionCard MsgType = "actionCard"
+)
+
+// MsgType message type
+type MsgType string
 
 //
 type Message interface {
-	GetMsgType() MessageType
-}
-
-// MessageAt
-type MessageAt struct {
-	// AtMobiles list of mobile phone numbers of people to be reminded
-	AtMobiles []string `json:"atMobiles"`
-	// AtUserIds list of user ids of people to be reminded
-	AtUserIds []string `json:"atUserIds"`
-	// IsAtAll
-	IsAtAll bool `json:"isAtAll"`
+	GetMsgType() MsgType
 }
 
 type MessageText struct {
@@ -23,17 +20,37 @@ type MessageText struct {
 	Content string `json:"content"`
 }
 
-type DingtalkMessageText struct {
-	MsgType MessageType `json:"msgtype"`
-	At      MessageAt   `json:"at"`
-	Text    MessageText `json:"text"`
+// TextMessage
+type TextMessage struct {
+	MsgType MsgType `json:"msgtype"`
+	Text    Text    `json:"content"`
+	At      At      `json:"at"`
 }
 
-func (m DingtalkMessageText) GetMsgType() MessageType {
-	return "text"
+type Text struct {
+	// Content message content
+	Content string `json:"content"`
 }
 
-type MessageLink struct {
+type At struct {
+	// AtMobiles list of mobile phone numbers of people to be reminded
+	AtMobiles []string `json:"atMobiles,omitempty"`
+	// AtUserIds list of user ids of people to be reminded
+	AtUserIds []string `json:"atUserIds,omitempty"`
+	// IsAtAll
+	IsAtAll bool `json:"isAtAll,omitempty"`
+}
+
+func (m TextMessage) GetMsgType() MsgType {
+	return MsgTypeText
+}
+
+type LinkMessage struct {
+	MsgType MsgType `json:"msgtype"`
+	Link    Link    `json:"link"`
+}
+
+type Link struct {
 	// Text message content
 	Text string `json:"text"`
 	// Title message title
@@ -44,40 +61,33 @@ type MessageLink struct {
 	MessageUrl string `json:"messageUrl"`
 }
 
-type DingtalkMessageLink struct {
-	MsgType MessageType `json:"msgtype"`
-	Link    MessageLink `json:"link"`
+func (m LinkMessage) GetMsgType() MsgType {
+	return MsgTypeLink
 }
 
-func (m DingtalkMessageLink) GetMsgType() MessageType {
-	return "link"
+type MarkdownMessage struct {
+	MsgType  MsgType  `json:"msgtype"`
+	Markdown Markdown `json:"link"`
+	At       At       `json:"at"`
 }
 
-type MessageMarkdown struct {
+type Markdown struct {
 	// Title the display content revealed in the first screen conversation
 	Title string `json:"title"`
 	// Text message content that format is markdown
 	Text string `json:"text"`
 }
 
-type DingtalkMessageMarkdown struct {
-	MsgType  MessageType     `json:"msgtype"`
-	Markdown MessageMarkdown `json:"markdown"`
-	At       MessageAt       `json:"at"`
+func (m MarkdownMessage) GetMsgType() MsgType {
+	return MsgTypeMarkdown
 }
 
-func (m DingtalkMessageMarkdown) GetMsgType() MessageType {
-	return "markdown"
+type ActionCardMessage struct {
+	MsgType    MsgType    `json:"msgtype"`
+	ActionCard ActionCard `json:"actionCard"`
 }
 
-type MessageActionCardBtn struct {
-	// Title title of button
-	Title string `json:"title"`
-	// ActionURL jump url of the click message
-	ActionURL string `json:"actionURL"`
-}
-
-type MessageActionCard struct {
+type ActionCard struct {
 	// Title the display content revealed in the first screen conversation
 	Title string `json:"title"`
 	// Text message content that format is markdown
@@ -89,68 +99,16 @@ type MessageActionCard struct {
 	// SingleURL jump url of the click message
 	SingleURL string `json:"singleURL"`
 	// Btns buttons array
-	Btns []MessageActionCardBtn `json:"btns"`
+	Btns []ActionCardBtn `json:"btns,omitempty"`
 }
 
-type DingtalkMessageActionCard struct {
-	MsgType    MessageType       `json:"msgtype"`
-	ActionCard MessageActionCard `json:"actionCard"`
+type ActionCardBtn struct {
+	// Title title of button
+	Title string `json:"title"`
+	// ActionURL jump url of the click message
+	ActionURL string `json:"actionURL"`
 }
 
-// NewDingtalkMessageText return dingtalk message that type is text
-func NewDingtalkMessageText(message string, atAll bool, mobiles, uids []string) DingtalkMessageText {
-	return DingtalkMessageText{
-		MsgType: "text",
-		Text: MessageText{
-			Content: message,
-		},
-		At: MessageAt{
-			IsAtAll:   atAll,
-			AtMobiles: mobiles,
-			AtUserIds: uids,
-		},
-	}
-}
-
-// NewDingtalkMessageLink return dingtalk message that type is link
-func NewDingtalkMessageLink(title, message, messageUrl, picUrl string) DingtalkMessageLink {
-	return DingtalkMessageLink{
-		MsgType: "link",
-		Link: MessageLink{
-			Text:       message,
-			Title:      title,
-			MessageUrl: messageUrl,
-			PicUrl:     picUrl,
-		},
-	}
-}
-
-// NewDingtalkMessageMarkdown return dingtalk message that type is markdown
-func NewDingtalkMessageMarkdown(title, message string, atAll bool, mobiles, uids []string) DingtalkMessageMarkdown {
-	return DingtalkMessageMarkdown{
-		MsgType: "markdown",
-		Markdown: MessageMarkdown{
-			Title: title,
-			Text:  message,
-		},
-		At: MessageAt{
-			IsAtAll:   atAll,
-			AtMobiles: mobiles,
-			AtUserIds: uids,
-		},
-	}
-}
-
-// NewDingtalkMessageActionCard return dingtalk message that type is actionCard
-func NewDingtalkMessageActionCard(title, message, btnOrientation, singleTitle, singleURL string) DingtalkMessageActionCard {
-	return DingtalkMessageActionCard{
-		MsgType: "actionCard",
-		ActionCard: MessageActionCard{
-			Title:          title,
-			Text:           message,
-			BtnOrientation: btnOrientation,
-			SingleTitle:    singleTitle,
-			SingleURL:      singleURL,
-		},
-	}
+func (m ActionCardMessage) GetMsgType() MsgType {
+	return MsgTypeActionCard
 }

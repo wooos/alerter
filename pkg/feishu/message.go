@@ -1,73 +1,71 @@
 package feishu
 
 const (
-	MsgTypeText        MessageType = "text"
-	MsgTypeInteractive MessageType = "interactive"
+	MsgTypeText        MsgType = "text"
+	MsgTypeInteractive MsgType = "interactive"
 )
 
-type MessageType string
+type MsgType string
 
 type Message interface {
-	GetMsgType() MessageType
+	GetMsgType() MsgType
 }
 
-//
 type TextMessage struct {
-	MsgType    MessageType        `json:"msg_type"`
-	MsgContent TextMessageContent `json:"content"`
+	MsgType MsgType `json:"msg_type"`
+	Content Content `json:"content"`
 }
 
-//
-type TextMessageContent struct {
+type Content struct {
+	// Text message content
 	Text string `json:"text"`
 }
 
-//
-func (m TextMessage) GetMsgType() MessageType {
+func (m TextMessage) GetMsgType() MsgType {
 	return MsgTypeText
 }
 
 // IntractiveMessage
 type InteractiveMessage struct {
-	MsgType MessageType            `json:"msg_type"`
-	MsgCard InteractiveMessageCard `json:"card"`
+	MsgType MsgType `json:"msg_type"`
+	Card    Card    `json:"card"`
 }
 
-func (m InteractiveMessage) GetMsgType() MessageType {
+type Card struct {
+	Header   CardHeader    `json:"header"`
+	Elements []CardElement `json:"elements"`
+}
+
+type CardHeader struct {
+	Template string          `json:"template"`
+	Title    CardHeaderTitle `json:"title"`
+}
+
+type CardHeaderTitle struct {
+	Content string `json:"content"`
+	Tag     string `json:"tag"`
+}
+
+type CardElement struct {
+	Tag     string              `json:"tag"`
+	Text    CardElementText     `json:"text,omitempty"`
+	Content string              `json:"content,omitempty"`
+	Actions []CardElementAction `json:"actions,omitempty"`
+}
+
+type CardElementText struct {
+	Content string `json:"content"`
+	Tag     string `json:"tag"`
+}
+
+type CardElementAction struct {
+	Tag   string            `json:"tag"`
+	Text  CardElementText   `json:"text"`
+	Url   string            `json:"url"`
+	Type  string            `json:"type"`
+	Value map[string]string `json:"value"`
+}
+
+func (m InteractiveMessage) GetMsgType() MsgType {
 	return MsgTypeInteractive
-}
-
-type InteractiveMessageCard struct {
-	Header   InteractiveMessageCardHeader    `json:"header"`
-	Elements []InteractiveMessageCardElement `json:"elements"`
-}
-
-type InteractiveMessageCardHeader struct {
-	Template string                            `json:"template"`
-	Title    InteractiveMessageCardHeaderTitle `json:"title"`
-}
-
-type InteractiveMessageCardHeaderTitle struct {
-	Content string `json:"content"`
-	Tag     string `json:"tag"`
-}
-
-type InteractiveMessageCardElement struct {
-	Tag     string                                `json:"tag"`
-	Text    InteractiveMessageCardElementText     `json:"text,omitempty"`
-	Content string                                `json:"content,omitempty"`
-	Actions []InteractiveMessageCardElementAction `json:"actions,omitempty"`
-}
-
-type InteractiveMessageCardElementText struct {
-	Content string `json:"content"`
-	Tag     string `json:"tag"`
-}
-
-type InteractiveMessageCardElementAction struct {
-	Tag   string                            `json:"tag"`
-	Text  InteractiveMessageCardElementText `json:"text"`
-	Url   string                            `json:"url"`
-	Type  string                            `json:"type"`
-	Value map[string]string                 `json:"value"`
 }

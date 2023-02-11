@@ -26,6 +26,9 @@ spec:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            - -c
+            - /etc/alerter/config.yaml
           ports:
             - name: http
               containerPort: 8080
@@ -42,7 +45,7 @@ spec:
             {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:
             - name: alerter-config
-              mountPath: /app
+              mountPath: /etc/alerter
       volumes:
         - name: alerter-config
           configMap:

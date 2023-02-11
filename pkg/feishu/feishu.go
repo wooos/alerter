@@ -3,9 +3,9 @@ package feishu
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 )
 
@@ -23,22 +23,31 @@ func NewClient(secret string) Client {
 	}
 }
 
-func (c Client) SendMessage(msg Message) {
+func (c Client) SendMessage(msg Message) error {
 	requestBody, err := json.Marshal(msg)
 	if err != nil {
-		log.Println(err)
+		return err
 	}
 
 	requestUrl := fmt.Sprintf("%s/%s", OpenApi, c.Secret)
 	response, err := http.Post(requestUrl, "application/json", bytes.NewBuffer(requestBody))
 	if err != nil {
-		log.Println(err)
+		return err
 	}
 
 	data, err := io.ReadAll(response.Body)
 	if err != nil {
-		log.Println(err)
+		return err
 	}
 
-	log.Println(string(data))
+	var responseData map[string]interface{}
+	if err := json.Unmarshal(data, &responseData); err != nil {
+		return err
+	}
+
+	if _, ok := responseData["StatusMessage"]; !ok {
+		return errors.New(responseData["msg"].(string))
+	}
+
+	return nil
 }

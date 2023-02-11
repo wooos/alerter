@@ -3,28 +3,24 @@ package server
 import (
 	"log"
 	"net/http"
-	"time"
+	"os"
 
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/wooos/alerter/internal/config"
+	"github.com/wooos/alerter/internal/pkg/metrics"
 )
 
 func RunServer() {
 	server := mux.NewRouter()
+	server.Use()
 
 	server.HandleFunc("/healthz", HealthHandler).Methods("GET")
+	server.Handle("/metrics", metrics.NewMetricsHandler())
 
 	api := server.PathPrefix("/api/v1").Subrouter()
 	api.HandleFunc("/alerter", AlerterHandler).Methods("POST")
 
-	srv := &http.Server{
-		Handler: server,
-		Addr:    config.Conf.ListenAddr(),
-		// Good practice: enforce timeouts for servers you create!
-		WriteTimeout: 15 * time.Second,
-		ReadTimeout:  15 * time.Second,
-	}
-
 	log.Println("Server starting ...")
-	srv.ListenAndServe()
+	http.ListenAndServe(config.Conf.ListenAddr(), handlers.LoggingHandler(os.Stdout, server))
 }
