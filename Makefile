@@ -43,7 +43,7 @@ LDFLAGS += -X github.com/wooos/alerter/internal/pkg/version.gitTreeState=${GIT_D
 LDFLAGS += $(EXT_LDFLAGS)
 
 .PHONY: all
-all: build build-docker-image
+all: build
 
 # ------------------------------------------------------------------------------
 #  build
@@ -54,10 +54,16 @@ build: $(BINDIR)/$(BINNAME)
 $(BINDIR)/$(BINNAME): $(SRC)
 	GO111MODULE=on go build $(GOFLAGS) -tags '$(TAGS)' -ldflags '$(LDFLAGS)' -o $(BINDIR)/$(BINNAME) ./cmd/alerter
 
-
+# ------------------------------------------------------------------------------
+#  build-docker-image
 .PHONY: build-docker-image
-build-docker-image:
+build-docker-image: build-linux-amd64
 	docker build -t wooos/alerter:$(BINARY_VERSION) -f Dockerfile .
+
+.PHONY: build-linux-amd64
+build-linux-amd64:
+	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 GOGO111MODULE=on go build $(GOFLAGS) -tags '$(TAGS)' -ldflags '$(LDFLAGS)' -o $(BINDIR)/$(BINNAME)-linux-amd64 ./cmd/alerter
+
 
 # ------------------------------------------------------------------------------
 #  test
@@ -89,6 +95,11 @@ $(GOX):
 
 $(GOIMPORTS):
 	(cd /; GO111MODULE=on go get -u golang.org/x/tools/cmd/goimports)
+
+.PHONY: build-cross
+build-cross: LDFLAGS += -extldflags "-static"
+build-cross: $(GOX)
+	GOFLAGS="-trimpath" GO111MODULE=on CGO_ENABLED=0 $(GOX) -parallel=3 -output="_dist/{{.OS}}-{{.Arch}}/$(BINNAME)" -osarch='$(TARGETS)' $(GOFLAGS) -tags '$(TAGS)' -ldflags '$(LDFLAGS)' ./cmd/alerter
 
 .PHONY: clean
 clean:

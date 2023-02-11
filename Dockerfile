@@ -7,6 +7,6 @@ RUN apt-get update \
 
 WORKDIR /app
 
-ADD bin/alerter /app/
+ADD bin/alerter-linux-amd64 /app/alerter
 
 ENTRYPOINT ["/app/alerter"]
